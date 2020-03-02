@@ -31,26 +31,31 @@ namespace rrtgo {
   bool Planner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal, std::vector<geometry_msgs::PoseStamped>& plan) {
     ROS_INFO("Making plan.");
     boost::mutex::scoped_lock(mutex_);
-    start_ = new RRT::Node(start.pose.position.x, start.pose.position.y);
-    goal_ = new RRT::Node(goal.pose.position.x, goal.pose.position.y);
-    ROS_INFO("Start: %.2f, %.2f", start_->getX(), start_->getY());
-    ROS_INFO("Goal:  %.2f, %.2f", goal_->getX(), goal_->getY());
-    tree_ = new RRT(iteration_limit_);
-    tree_->add(*start_);
-    ROS_INFO("Tree root: %.2f, %.2f", tree_->getRoot()->getX(), tree_->getRoot()->getY());
+
+    start_ = { start.pose.position.x, start.pose.position.y };
+    goal_ = { goal.pose.position.x, goal.pose.position.y };
+
+    ROS_INFO("Start: %.2f, %.2f", start_.x, start_.y);
+    ROS_INFO("Goal:  %.2f, %.2f", goal_.x, goal_.y);
+    
+    tree_ = new RRT();
+    tree_->add(start_);
+
+    ROS_INFO("Tree root: %.2f, %.2f", tree_->getRoot().getX(), tree_->getRoot().getY());
+    
     int iterations = 0;
     bool goal_reached = false;
 
     while(!goal_reached && iterations < iteration_limit_) {
       RRT::Point random_point = getRandom();
       if(!obstacle(random_point)) {
-        RRT::Node* closest_node = closest(random_point);
-        if(pathValid(random_point, *closest_node)) {
-          tree_->add(random_point, closest_node);
+        int nearest_index = nearest(random_point);
+        RRT::Node nearest_node = tree_->get(nearest_index);
+        if(pathValid(random_point, nearest_node.getLocation())) {
+          tree_->add(random_point, nearest_index);
           if(inGoalArea(random_point)) {
             goal_reached = true;
-            goal_->setParent(tree_->getBack());
-            tree_->add(*goal_);
+            tree_->add(goal_, tree_->size() - 1);
           }
         }
         iterations++;
@@ -66,9 +71,29 @@ namespace rrtgo {
     ROS_INFO("Iterations: %d", iterations);
     tree_->print();
 
+    /**
+     * @debug
+     **/
+    int walk = tree_->size() - 1;
+    std::vector<int> valid_list;
+    while(walk != -1) {
+      valid_list.push_back(walk);
+      walk = tree_->get(walk).getParent();
+    }
+    /***/
+    
+    int i = 0;
+    for(int w = valid_list.size() - 1; w >= 0; w--) {
+      RRT::Node n = tree_->get(valid_list[w]);
+      printf("Waypoint\t%d:\t(%.2f, %.2f)\n", i++, n.getX(), n.getY());
+    }
+
+
+    for(int i = 0; i < valid_list.size(); i++) {
+      plan.push_back(generatePoseStamped(tree_->get(valid_list[i])));
+    }
+
     return !plan.empty();
-
-
   
   }
 
@@ -87,12 +112,12 @@ namespace rrtgo {
   }
 
 
-  bool Planner::pathValid(RRT::Point start, RRT::Node end) {
+  bool Planner::pathValid(RRT::Point start, RRT::Point end) {
     double start_x, start_y, end_x, end_y;
     start_x = start.x;
     start_y = start.y;
-    end_x = end.getX();
-    end_y = end.getY();
+    end_x = end.x;
+    end_y = end.y;
     ROS_INFO("Checking if (%.2f, %.2f) ---> (%.2f, %.2f) path is valid.", start_x, start_y, end_x, end_y);
 
     double theta = atan2(start_y - end_y, start_x - end_x);
@@ -107,7 +132,7 @@ namespace rrtgo {
     unsigned int mx, my;
 
     while(distance(current, end) > delta_) {
-      ROS_INFO("current: (%.2f, %.2f)", cur_x, cur_y);
+      //ROS_INFO("current: (%.2f, %.2f)", cur_x, cur_y);
       cur_x -= delta_ * cos(theta);
       cur_y -= delta_ * sin(theta);
       current.x = cur_x;
@@ -119,16 +144,16 @@ namespace rrtgo {
     return true;
   }
 
-  double Planner::distance(RRT::Point start, RRT::Node end) {
+  double Planner::distance(RRT::Point start, RRT::Point end) {
     double q1 = start.x;
     double q2 = start.y;
-    double p1 = end.getX();
-    double p2 = end.getY();
+    double p1 = end.x;
+    double p2 = end.y;
     return sqrt(pow((q1 - p1), 2) + pow((q2 - p2), 2));
   }
 
   bool Planner::inGoalArea(RRT::Point point) {
-    return distance(point, *goal_) <= goal_radius_;
+    return distance(point, goal_) <= goal_radius_;
   }
 
   RRT::Point Planner::getRandom() {
@@ -160,13 +185,13 @@ namespace rrtgo {
     ROS_INFO("New PoseStamped: %.2f, %.2f", pose.pose.position.x, pose.pose.position.y);
   }
 
-  RRT::Node* Planner::closest(RRT::Point point) {
+  int Planner::nearest(RRT::Point point) {
     //ROS_INFO("Getting the closest node to (%.2f, %.2f)", point.x, point.y);
     double min_dist = std::numeric_limits<double>::infinity();
     int closest_index;
     int index;
     for(index = 0; index < tree_->size(); index++) {
-      RRT::Node walk = *tree_->get(index);
+      RRT::Point walk = tree_->get(index).getLocation();
       double dist = distance(point, walk);
       if(dist < min_dist) {
         min_dist = dist;
@@ -175,7 +200,7 @@ namespace rrtgo {
     }
     ROS_INFO("Tree size: %d", tree_->size());
     ROS_INFO("Closest index: %d", closest_index);
-    return tree_->get(closest_index);
+    return closest_index;
   }
 
 }
