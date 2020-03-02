@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   base_local_planner
   tf
   geometry_msgs
+  visualization_msgs
 )
 
 include_directories(

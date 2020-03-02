@@ -8,6 +8,7 @@
 #include <nav_core/base_global_planner.h>
 
 #include <geometry_msgs/PoseStamped.h>
+#include <visualization_msgs/Marker.h>
 #include <nav_msgs/GetPlan.h>
 #include <nav_msgs/Path.h>
 
@@ -170,6 +171,8 @@ namespace rrtgo {
 
 
       int nearest(RRT::Point point);
+
+      void visualize(geometry_msgs::PoseStamped pose);
 
 
     private:

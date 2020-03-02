@@ -57,8 +57,8 @@ namespace rrtgo {
             goal_reached = true;
             tree_->add(goal_, tree_->size() - 1);
           }
+          iterations++;
         }
-        iterations++;
       }
     }
 
@@ -71,27 +71,31 @@ namespace rrtgo {
     ROS_INFO("Iterations: %d", iterations);
     tree_->print();
 
-    /**
-     * @debug
-     **/
+
     int walk = tree_->size() - 1;
     std::vector<int> valid_list;
     while(walk != -1) {
       valid_list.push_back(walk);
       walk = tree_->get(walk).getParent();
     }
-    /***/
     
-    int i = 0;
-    for(int w = valid_list.size() - 1; w >= 0; w--) {
-      RRT::Node n = tree_->get(valid_list[w]);
-      printf("Waypoint\t%d:\t(%.2f, %.2f)\n", i++, n.getX(), n.getY());
-    }
 
+
+
+    plan.clear();
 
     for(int i = 0; i < valid_list.size(); i++) {
       plan.push_back(generatePoseStamped(tree_->get(valid_list[i])));
     }
+
+
+    /**
+     * @debug
+     **/
+    //for(int w = 0; w < plan.size(); w++) {
+    //  printf("Waypoint\t%d:\t(%.2f, %.2f)\n", w, plan[w].pose.position.x, plan[w].pose.position.y);
+    //}
+    /***/
 
     return !plan.empty();
   
@@ -183,6 +187,9 @@ namespace rrtgo {
     pose.pose.orientation.z = 0.0;
     pose.pose.orientation.w = 1.0;
     ROS_INFO("New PoseStamped: %.2f, %.2f", pose.pose.position.x, pose.pose.position.y);
+    visualize(pose);
+    
+    return pose;
   }
 
   int Planner::nearest(RRT::Point point) {
@@ -201,6 +208,30 @@ namespace rrtgo {
     ROS_INFO("Tree size: %d", tree_->size());
     ROS_INFO("Closest index: %d", closest_index);
     return closest_index;
+  }
+  
+  void Planner::visualize(geometry_msgs::PoseStamped pose) {
+    /** Visualization */
+    ros::NodeHandle vis_nh;
+    ros::Publisher vis_pub = vis_nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "base_link";
+    marker.header.stamp = ros::Time();
+    marker.ns = "rrtgo";
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose = pose.pose;
+    marker.scale.x = 1.0;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
+    marker.color.a = 1.0;
+    marker.color.r = 1.0;
+    marker.color.g = 1.0;
+    marker.color.b = 0.0;
+    vis_pub.publish(marker);
+    printf("%.2f, %.2f\n", marker.pose.position.x, marker.pose.position.y);
+    /**               */
   }
 
 }
