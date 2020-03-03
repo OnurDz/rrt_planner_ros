@@ -30,6 +30,10 @@ namespace rrt_planner {
       frame_id_ = "map";
       initialized_ = true;
       ROS_INFO("Initialized planner %s", name.c_str());
+
+
+      vis_pub_ = vis_nh_.advertise<visualization_msgs::Marker>("visualization_marker", 0);
+      marker_id_ = 0;
     }
   }
 
@@ -95,6 +99,7 @@ namespace rrt_planner {
 
     plan.clear();
 
+    plan_time_ = ros::Time::now();
     for(int i = 0; i < valid_list.size(); i++) {
       plan.push_back(generatePoseStamped(tree_->get(valid_list[i])));
     }
@@ -195,7 +200,7 @@ namespace rrt_planner {
 
   geometry_msgs::PoseStamped RRTPlanner::generatePoseStamped(RRT::Node n) {
     geometry_msgs::PoseStamped pose;
-    pose.header.stamp = plan_time_;
+    pose.header.stamp = ros::Time::now();
     pose.header.frame_id = frame_id_;
     pose.pose.position.x = n.getX();
     pose.pose.position.y = n.getY();
@@ -204,8 +209,13 @@ namespace rrt_planner {
     pose.pose.orientation.y = 0.0;
     pose.pose.orientation.z = 0.0;
     pose.pose.orientation.w = 1.0;
+    pose.header.stamp = plan_time_;
     ROS_INFO("New PoseStamped: %.2f, %.2f", pose.pose.position.x, pose.pose.position.y);
-    visualize(pose);
+
+
+    visualization_msgs::Marker marker = generateMarker(pose);
+    ros::Duration(1).sleep();
+    vis_pub_.publish(marker);
     
     return pose;
   }
@@ -228,26 +238,25 @@ namespace rrt_planner {
     return closest_index;
   }
   
-  void RRTPlanner::visualize(geometry_msgs::PoseStamped pose) {
+  visualization_msgs::Marker RRTPlanner::generateMarker(geometry_msgs::PoseStamped pose) {
     /** Visualization */
-    ros::NodeHandle vis_nh;
-    ros::Publisher vis_pub = vis_nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "base_link";
-    marker.header.stamp = ros::Time();
+    marker.header.frame_id = frame_id_;
+    marker.header.stamp = ros::Time::now();
     marker.ns = "rrt_planner";
     marker.id = 0;
     marker.type = visualization_msgs::Marker::SPHERE;
     marker.action = visualization_msgs::Marker::ADD;
     marker.pose = pose.pose;
-    marker.scale.x = 1.0;
+    marker.scale.x = 0.1;
     marker.scale.y = 0.1;
     marker.scale.z = 0.1;
     marker.color.a = 1.0;
     marker.color.r = 1.0;
     marker.color.g = 1.0;
     marker.color.b = 0.0;
-    vis_pub.publish(marker);
+    marker.id = marker_id_++;
+    return marker;
     //printf("%.2f, %.2f\n", marker.pose.position.x, marker.pose.position.y);
     /**               */
   }
