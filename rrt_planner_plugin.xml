@@ -1,5 +1,5 @@
  <library path="lib/librrt_planner">
-  <class name="rrt_planner/RRTPlanner" type="rrt_planner::RRTPlanner" base_class_type="nav_core::BaseGlobalRRTPlanner">
+  <class name="rrt_planner/RRTPlanner" type="rrt_planner::RRTPlanner" base_class_type="nav_core::BaseGlobalPlanner">
     <description>Global RRTplanner plugin to implement RRT star.</description>
   </class>
  </library>
