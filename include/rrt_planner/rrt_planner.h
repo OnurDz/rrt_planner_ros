@@ -28,54 +28,125 @@
 #define RRTS_CPP
 
 namespace rrt_planner {
+  /**
+   * @brief a class interface for storing and manipulating map location data in rrt form
+   */
   class RRT {
     public:
+      /**
+       * @brief struct for efficiently and simply storing coordinates at one object
+       */
       struct Point {
         double x;
         double y;
       };
       
+      /**
+       * @brief class for storing and manipulating map coordinates
+       */
       class Node {
         private:
+          /** world x coordinate of node */
           double wx_;
+          /** world y coordinate of node */
           double wy_;
+          /** index in tree */
           int index_;
+          /** index of parent in tree */
           int parent_;
 
         public:
+          /**
+           * @brief default constructor
+           */
           Node() { parent_ = -1; }
+
+          /**
+           * @brief constructor that initializes with coordinates
+           */
           Node(double wx, double wy) {
             parent_ = -1;
             setLocation(wx, wy);
           }
+
+          /** 
+           * @brief constructor that initializes with point struct
+           */
           Node(Point p) {
             parent_ = -1;
             setLocation(p);
           }
 
+          /**
+           * @brief getter function for wx_
+           */
           double getX() { return wx_; }
+
+          /**
+           * @brief getter function for wy_
+           */
           double getY() { return wy_; }
+
+          /**
+           * @brief setter function for wx_
+           */
           void setX(double wx) { wx_ = wx; }
+
+          /**
+           * @brief setter function for wy_
+           */
           void setY(double wy) { wy_ = wy; }
 
+
+          /**
+           * @brief getter function for node index
+           */
           int getIndex() { return index_; }
+
+          /**
+           * @brief getter function for parent index
+           */
           int getParent() { return parent_; }
+
+          /**
+           * @brief setter function for node index
+           */
           void setIndex(int index) { index_ = index; }
+
+          /**
+           * @brief getter function for parent index
+           */
           void setParent(int pindex) { parent_ = pindex; }
           
+          /**
+           * @brief getter function for node location as point struct
+           */
           Point getLocation() {
             Point p = { wx_, wy_ };
             return p;
           }
           
+          /**
+           * @brief setter function for node coordinates
+           */
           void setLocation(double wx, double wy) {
             wx_ = wx;
             wy_ = wy;
           }
+
+          /**
+           * @brief setter function for node coordinates with point @param p
+           */
           void setLocation(Point p) { setLocation(p.x, p.y); }
 
+          /**
+           * @brief return true if node has an assigned parent, false otherwise
+           */
           bool hasParent() { return parent_ == -1; }
 
+          /**
+           * @brief override of comparison operator
+           */
           void operator=(const Node &N) {
             wx_ = N.wx_;
             wy_ = N.wy_;
@@ -83,13 +154,34 @@ namespace rrt_planner {
           }
       };
 
+      /**
+       * @brief default constructor
+       */
       RRT() { size_ = 0; }
 
+      /**
+       * @brief return node object at @param index in tree
+       */
       Node get(int index) { return list_.at(index); }
+
+      /**
+       * @brief return root node object of tree
+       */
       Node getRoot() { return get(0); }
+
+      /**
+       * @brief return last added node object in tree
+       */
       Node back() { return list_.back(); }
+
+      /**
+       * @brief return number of nodes in tree
+       */
       int size() { return size_; }
 
+      /**
+       * @brief properly add node @param n to tree
+       */
       void add(Node n) {
         n.setIndex(size_);
         list_.push_back(n);
@@ -100,16 +192,26 @@ namespace rrt_planner {
         //}
         size_++;
       }
+      
+      /**
+       * @brief properly add node @param n to tree after setting its parent to @param pindex
+       */
       void add(Node n, int pindex) {
         n.setParent(pindex);
         add(n);
       }
+
+      /**
+       * @brief properly add a node that contains information in @param p to tree
+       */
       void add(Point p) {
         Node n(p);
         add(n);
       }
 
-      /** print tree for @debug **/
+      /**
+       * @brief print tree nodes with repective parents to stdout for debugging purposes
+       */
       void print() {
         printf("Root:\t(%.2f,\t%.2f)\n", list_[0].getX(), list_[0].getY());
         for(int i = 1; i < size_; i++) {
@@ -120,10 +222,15 @@ namespace rrt_planner {
       }
 
     private:
+      /** dynamic array to store nodes efficiently */
       std::vector<Node> list_;
+      /** counter to store number of nodes */
       int size_;
   };
 
+  /**
+   * @brief class ros calles to initialize, make and push plan
+   */
   class RRTPlanner : public nav_core::BaseGlobalPlanner {
     public:
       /**
