@@ -27,7 +27,7 @@
 #ifndef RRTS_CPP
 #define RRTS_CPP
 
-namespace rrtgo {
+namespace rrt_planner {
   class RRT {
     public:
       struct Point {
@@ -124,21 +124,21 @@ namespace rrtgo {
       int size_;
   };
 
-  class Planner : public nav_core::BaseGlobalPlanner {
+  class RRTPlanner : public nav_core::BaseGlobalPlanner {
     public:
       /**
        * @brief default constructor
        */
-      Planner();
+      RRTPlanner();
 
-      Planner(ros::NodeHandle nh);
+      RRTPlanner(ros::NodeHandle nh);
 
       /**
        * @brief constructor
        * @param name give a name to planner
        * @param costmap_ros pointer to costmap object ros gives to planner
        */
-      Planner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
+      RRTPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
       /**
        * @brief initialize the planner
        * @param name give a name to planner
@@ -193,7 +193,7 @@ namespace rrtgo {
       base_local_planner::WorldModel* world_model_;
 
       /** tree object to hold vertices */
-      rrtgo::RRT* tree_;
+      rrt_planner::RRT* tree_;
       /** start node */
       RRT::Point start_;
       /** goal node */

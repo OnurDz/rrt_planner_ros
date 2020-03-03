@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>rrtgo</name>
+  <name>rrt_planner</name>
   <version>0.1.0</version>
   <description>Global planner plugin using RRT* algorithm</description>
 
@@ -42,6 +42,6 @@
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <nav_core plugin="${prefix}/rrtgo_plugin.xml"/>
+    <nav_core plugin="${prefix}/rrt_planner_plugin.xml"/>
   </export>
 </package>

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(rrtgo)
+project(rrt_planner)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -29,11 +29,11 @@ catkin_package(
 )
 
 add_library(${PROJECT_NAME}
-  src/rrtgo.cpp
+  src/rrt_planner.cpp
 )
 
-add_dependencies(rrtgo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(rrt_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 install(DIRECTORY include/${PROJECT_NAME}/ DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
-install(FILES rrtgo_plugin.xml DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}) 
+install(FILES rrt_planner_plugin.xml DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}) 

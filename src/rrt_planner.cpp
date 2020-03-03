@@ -1,29 +1,29 @@
 #include <pluginlib/class_list_macros.h>
-#include "rrtgo/rrtgo.h"
+#include "rrt_planner/rrt_planner.h"
 
-PLUGINLIB_EXPORT_CLASS(rrtgo::Planner, nav_core::BaseGlobalPlanner)
+PLUGINLIB_EXPORT_CLASS(rrt_planner::RRTPlanner, nav_core::BaseGlobalPlanner)
 
-namespace rrtgo {
-  Planner::Planner()
+namespace rrt_planner {
+  RRTPlanner::RRTPlanner()
   : costmap_ros_(nullptr), initialized_(false) {}
 
-  Planner::Planner(ros::NodeHandle nh)
+  RRTPlanner::RRTPlanner(ros::NodeHandle nh)
   : costmap_ros_(nullptr), initialized_(false) {
     ros_nh_ = nh;
   }
 
-  Planner::Planner(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
+  RRTPlanner::RRTPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
   : initialized_(false) {
     initialize(name, costmap_ros);
   }
 
-  void Planner::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros) {
+  void RRTPlanner::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros) {
     ROS_INFO("Initializing.");
     if(!initialized_) {
       costmap_ros_ = costmap_ros;
       costmap_ = costmap_ros_->getCostmap();
       world_model_ = new base_local_planner::CostmapModel(*costmap_);
-      ros::NodeHandle private_nh("~" + name);
+      ros::NodeHandle private_nh("~/" + name);
       private_nh.param("goal_radius", goal_radius_, 0.3);
       private_nh.param("delta", delta_, 0.01);
       private_nh.param("iteration_limit", iteration_limit_, 500);
@@ -33,7 +33,7 @@ namespace rrtgo {
     }
   }
 
-  bool Planner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal, std::vector<geometry_msgs::PoseStamped>& plan) {
+  bool RRTPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal, std::vector<geometry_msgs::PoseStamped>& plan) {
     
     /** Determine proficency and efficiency */
     auto st = std::chrono::system_clock::now();
@@ -119,7 +119,7 @@ namespace rrtgo {
   
   }
 
-  bool Planner::obstacle(RRT::Point point) {
+  bool RRTPlanner::obstacle(RRT::Point point) {
     unsigned int mx, my;
     double wx = point.x;
     double wy = point.y;
@@ -134,7 +134,7 @@ namespace rrtgo {
   }
 
 
-  bool Planner::pathValid(RRT::Point start, RRT::Point end) {
+  bool RRTPlanner::pathValid(RRT::Point start, RRT::Point end) {
     double start_x, start_y, end_x, end_y;
     start_x = start.x;
     start_y = start.y;
@@ -166,7 +166,7 @@ namespace rrtgo {
     return true;
   }
 
-  double Planner::distance(RRT::Point start, RRT::Point end) {
+  double RRTPlanner::distance(RRT::Point start, RRT::Point end) {
     double q1 = start.x;
     double q2 = start.y;
     double p1 = end.x;
@@ -174,11 +174,11 @@ namespace rrtgo {
     return sqrt(pow((q1 - p1), 2) + pow((q2 - p2), 2));
   }
 
-  bool Planner::inGoalArea(RRT::Point point) {
+  bool RRTPlanner::inGoalArea(RRT::Point point) {
     return distance(point, goal_) <= goal_radius_;
   }
 
-  RRT::Point Planner::getRandom() {
+  RRT::Point RRTPlanner::getRandom() {
     //ROS_INFO("Getting random point.");
     RRT::Point rand;
     std::random_device rd;
@@ -193,7 +193,7 @@ namespace rrtgo {
     return rand;
   }
 
-  geometry_msgs::PoseStamped Planner::generatePoseStamped(RRT::Node n) {
+  geometry_msgs::PoseStamped RRTPlanner::generatePoseStamped(RRT::Node n) {
     geometry_msgs::PoseStamped pose;
     pose.header.stamp = plan_time_;
     pose.header.frame_id = frame_id_;
@@ -210,7 +210,7 @@ namespace rrtgo {
     return pose;
   }
 
-  int Planner::nearest(RRT::Point point) {
+  int RRTPlanner::nearest(RRT::Point point) {
     //ROS_INFO("Getting the closest node to (%.2f, %.2f)", point.x, point.y);
     double min_dist = std::numeric_limits<double>::infinity();
     int closest_index;
@@ -228,14 +228,14 @@ namespace rrtgo {
     return closest_index;
   }
   
-  void Planner::visualize(geometry_msgs::PoseStamped pose) {
+  void RRTPlanner::visualize(geometry_msgs::PoseStamped pose) {
     /** Visualization */
     ros::NodeHandle vis_nh;
     ros::Publisher vis_pub = vis_nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
     visualization_msgs::Marker marker;
     marker.header.frame_id = "base_link";
     marker.header.stamp = ros::Time();
-    marker.ns = "rrtgo";
+    marker.ns = "rrt_planner";
     marker.id = 0;
     marker.type = visualization_msgs::Marker::SPHERE;
     marker.action = visualization_msgs::Marker::ADD;

@@ -1,5 +1,0 @@
- <library path="lib/librrtgo">
-  <class name="rrtgo/Planner" type="rrtgo::Planner" base_class_type="nav_core::BaseGlobalPlanner">
-    <description>Global planner plugin to implement RRT star.</description>
-  </class>
- </library>
