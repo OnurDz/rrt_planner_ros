@@ -131,6 +131,10 @@ namespace rrt_planner {
        */
       RRTPlanner();
 
+      /**
+       * @brief constructor
+       * @param nh ROS NodeHandle object
+       */
       RRTPlanner(ros::NodeHandle nh);
 
       /**
@@ -164,23 +168,34 @@ namespace rrt_planner {
        */
       bool pathValid(RRT::Point start, RRT::Point end);
 
-      double distance(RRT::Point start, RRT::Point end);
       /**
-       * @brief return true if @param n is in goal threshold
+       * @brief calculate and return the euclidean distance between @param start and @param end
+       */
+      double distance(RRT::Point start, RRT::Point end);
+      
+      /**
+       * @brief return true if @param point is in goal threshold
        */
       bool inGoalArea(RRT::Point point);
+      
       /**
        * @brief return a random point inside map bounds
        */
       RRT::Point getRandom();
+      
       /**
-       * @brief fill @param pos according to data @param n holds
+       * @brief generate and return PoseStamped message object according to data @param n holds
        */
       geometry_msgs::PoseStamped generatePoseStamped(RRT::Node n);
 
-
+      /**
+       * find nearest node to @param point and return its index in tree
+       */
       int nearest(RRT::Point point);
 
+      /**
+       * publish visualization messages that contain node poses
+       */
       void visualize(geometry_msgs::PoseStamped pose);
 
 
@@ -218,7 +233,7 @@ namespace rrt_planner {
 
       /** Time object to set PoseStamped header time */
       ros::Time plan_time_;
-
+      /** ROS NodeHandle object */
       ros::NodeHandle ros_nh_;
 
   };
