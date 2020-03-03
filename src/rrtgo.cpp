@@ -1,11 +1,16 @@
-#include "rrtgo/rrtgo.h"
 #include <pluginlib/class_list_macros.h>
+#include "rrtgo/rrtgo.h"
 
 PLUGINLIB_EXPORT_CLASS(rrtgo::Planner, nav_core::BaseGlobalPlanner)
 
 namespace rrtgo {
   Planner::Planner()
   : costmap_ros_(nullptr), initialized_(false) {}
+
+  Planner::Planner(ros::NodeHandle nh)
+  : costmap_ros_(nullptr), initialized_(false) {
+    ros_nh_ = nh;
+  }
 
   Planner::Planner(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
   : initialized_(false) {
@@ -19,16 +24,21 @@ namespace rrtgo {
       costmap_ = costmap_ros_->getCostmap();
       world_model_ = new base_local_planner::CostmapModel(*costmap_);
       ros::NodeHandle private_nh("~" + name);
-      goal_radius_ = 0.3;
-      delta_ = 0.01;
-      iteration_limit_ = 500;
+      private_nh.param("goal_radius", goal_radius_, 0.3);
+      private_nh.param("delta", delta_, 0.01);
+      private_nh.param("iteration_limit", iteration_limit_, 500);
       frame_id_ = "map";
       initialized_ = true;
-      ROS_INFO("Initialized planner %s", name);
+      ROS_INFO("Initialized planner %s", name.c_str());
     }
   }
 
   bool Planner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal, std::vector<geometry_msgs::PoseStamped>& plan) {
+    
+    /** Determine proficency and efficiency */
+    auto st = std::chrono::system_clock::now();
+    /**                                     */
+
     ROS_INFO("Making plan.");
     boost::mutex::scoped_lock(mutex_);
 
@@ -63,13 +73,14 @@ namespace rrtgo {
     }
 
     if(!goal_reached) {
-      ROS_WARN("Iteration limit reached. Path not found!");
+      ROS_WARN("Iteration limit of %d reached. Path not found!", iteration_limit_);
       return false;
     }
 
     ROS_INFO("Tree completed.");
     ROS_INFO("Iterations: %d", iterations);
-    tree_->print();
+    ROS_INFO("Tree size: %d", tree_->size());
+    //tree_->print();
 
 
     int walk = tree_->size() - 1;
@@ -97,6 +108,13 @@ namespace rrtgo {
     //}
     /***/
 
+
+    /** Elapsed time calculation for debugging */
+    auto en = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = en - st;
+    ROS_INFO("ELAPSED TIME: %f seconds", elapsed_seconds.count());
+    /**                                        */
+
     return !plan.empty();
   
   }
@@ -122,7 +140,7 @@ namespace rrtgo {
     start_y = start.y;
     end_x = end.x;
     end_y = end.y;
-    ROS_INFO("Checking if (%.2f, %.2f) ---> (%.2f, %.2f) path is valid.", start_x, start_y, end_x, end_y);
+    //ROS_INFO("Checking if (%.2f, %.2f) ---> (%.2f, %.2f) path is valid.", start_x, start_y, end_x, end_y);
 
     double theta = atan2(start_y - end_y, start_x - end_x);
 
@@ -161,7 +179,7 @@ namespace rrtgo {
   }
 
   RRT::Point Planner::getRandom() {
-    ROS_INFO("Getting random point.");
+    //ROS_INFO("Getting random point.");
     RRT::Point rand;
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -171,7 +189,7 @@ namespace rrtgo {
     std::uniform_real_distribution<> y((-1) * world_y / 2, world_y / 2);
     rand.x = x(gen);
     rand.y = y(gen);
-    ROS_INFO("Random point: %.2f, %.2f", rand.x, rand.y);
+    //ROS_INFO("Random point: %.2f, %.2f", rand.x, rand.y);
     return rand;
   }
 
@@ -205,8 +223,8 @@ namespace rrtgo {
         closest_index = index;
       }
     }
-    ROS_INFO("Tree size: %d", tree_->size());
-    ROS_INFO("Closest index: %d", closest_index);
+    //ROS_INFO("Tree size: %d", tree_->size());
+    //ROS_INFO("Closest index: %d", closest_index);
     return closest_index;
   }
   
@@ -230,7 +248,7 @@ namespace rrtgo {
     marker.color.g = 1.0;
     marker.color.b = 0.0;
     vis_pub.publish(marker);
-    printf("%.2f, %.2f\n", marker.pose.position.x, marker.pose.position.y);
+    //printf("%.2f, %.2f\n", marker.pose.position.x, marker.pose.position.y);
     /**               */
   }
 

@@ -19,6 +19,11 @@
 #include <base_local_planner/world_model.h>
 #include <base_local_planner/costmap_model.h>
 
+/** Debugging  */
+#include <chrono>
+#include <ctime>
+/**            */
+
 #ifndef RRTS_CPP
 #define RRTS_CPP
 
@@ -88,10 +93,11 @@ namespace rrtgo {
       void add(Node n) {
         n.setIndex(size_);
         list_.push_back(n);
-        ROS_INFO("added (%.2f, %.2f) with parent %d", list_.at(size_).getX(), list_.at(size_).getY(), list_.at(size_).getParent());
+        //ROS_INFO("added (%.2f, %.2f) with parent %d", list_.at(size_).getX(), list_.at(size_).getY(), list_.at(size_).getParent());
         Node debug = list_[size_];
-        if(debug.getParent() != -1)
-          ROS_INFO("parent location: (%.2f, %.2f)", get(debug.getParent()).getX(), get(debug.getParent()).getY());
+        //if(debug.getParent() != -1) {
+          //ROS_INFO("parent location: (%.2f, %.2f)", get(debug.getParent()).getX(), get(debug.getParent()).getY());
+        //}
         size_++;
       }
       void add(Node n, int pindex) {
@@ -124,6 +130,9 @@ namespace rrtgo {
        * @brief default constructor
        */
       Planner();
+
+      Planner(ros::NodeHandle nh);
+
       /**
        * @brief constructor
        * @param name give a name to planner
@@ -209,6 +218,8 @@ namespace rrtgo {
 
       /** Time object to set PoseStamped header time */
       ros::Time plan_time_;
+
+      ros::NodeHandle ros_nh_;
 
   };
 }
