@@ -129,7 +129,8 @@ namespace rrt_planner {
     double wy = point.y;
     costmap_->worldToMap(wx, wy, mx, my);
     //ROS_INFO("Checking if (%.2f, %.2f) is obstacle.", wx, wy);
-    if(costmap_->getCost(mx, my) >= costmap_2d::LETHAL_OBSTACLE) {
+    unsigned char cost = costmap_->getCost(mx, my);
+    if(cost == costmap_2d::INSCRIBED_INFLATED_OBSTACLE || cost == costmap_2d::NO_INFORMATION) {
       //ROS_INFO("+Obstacle");
       return true;
     }
