@@ -157,7 +157,10 @@ namespace rrt_planner {
       /**
        * @brief default constructor
        */
-      RRT() { size_ = 0; }
+      RRT() {
+        size_ = 0;
+        tree_pub_ = tree_nh_.advertise<visualization_msgs::Marker>("tree_marker", 0);
+      }
 
       /**
        * @brief return node object at @param index in tree
@@ -220,6 +223,52 @@ namespace rrt_planner {
           printf("Parent\t%d:\t(%.2f,\t%.2f)\n", i, get(current.getParent()).getX(), get(current.getParent()).getY());
         }
       }
+
+      void visualize() {
+        ROS_INFO("VISUALIZING...");
+        int marker_id = 0;
+        visualization_msgs::Marker points;
+        points.header.frame_id = "map";
+        points.header.stamp = ros::Time::now();
+        points.type = visualization_msgs::Marker::POINTS;
+        points.action = visualization_msgs::Marker::ADD;
+        points.id = marker_id++;
+        points.color.r = 1.0;
+        points.color.a = 0.5;
+        points.pose.orientation.w = 1.0;
+        points.scale.x = 0.07;
+        points.scale.y = 0.07;
+
+        visualization_msgs::Marker line_strip;
+        line_strip.header.frame_id = "map";
+        line_strip.header.stamp = ros::Time::now();
+        line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+        line_strip.action = visualization_msgs::Marker::ADD;
+        line_strip.id = marker_id++;
+        line_strip.color.b = 1.0;
+        line_strip.color.a = 0.5;
+        line_strip.pose.orientation.w = 1.0;
+        line_strip.scale.x = 0.06;
+
+        geometry_msgs::Point p;
+        for(int i = 0; i < size_; i++) {
+          p.x = list_[i].getX();
+          p.y = list_[i].getY();
+          p.z = 0.0;
+
+          points.points.push_back(p);
+          //line_strip.points.push_back(p);
+          tree_pub_.publish(points);
+          //tree_pub_.publish(line_strip);
+          //ros::Duration(0.1).sleep();
+        }
+        
+      }
+
+      void clear() {
+          list_.clear();
+          size_ = 0;
+        }
 
     private:
       /** dynamic array to store nodes efficiently */
@@ -342,10 +391,8 @@ namespace rrt_planner {
       /** number of max iterations for a single sweep */
       int iteration_limit_;
 
-      /** Time object to set PoseStamped header time */
-      ros::Time plan_time_;
       /** ROS NodeHandle object */
-      ros::NodeHandle ros_nh_;
+      ros::NodeHandle private_nh_;
       
       ros::NodeHandle vis_nh_;
       ros::Publisher vis_pub_;

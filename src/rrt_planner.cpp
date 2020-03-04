@@ -9,7 +9,7 @@ namespace rrt_planner {
 
   RRTPlanner::RRTPlanner(ros::NodeHandle nh)
   : costmap_ros_(nullptr), initialized_(false) {
-    ros_nh_ = nh;
+    private_nh_ = nh;
   }
 
   RRTPlanner::RRTPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
@@ -23,11 +23,13 @@ namespace rrt_planner {
       costmap_ros_ = costmap_ros;
       costmap_ = costmap_ros_->getCostmap();
       world_model_ = new base_local_planner::CostmapModel(*costmap_);
-      ros::NodeHandle private_nh("~/" + name);
-      private_nh.param("goal_radius", goal_radius_, 0.5);
-      private_nh.param("delta", delta_, 0.005);
-      private_nh.param("iteration_limit", iteration_limit_, 2500);
-      private_nh.param("mode", mode_, 1);
+      tree_ = new RRT();
+      ros::NodeHandle nh("~/rrt_planner");
+      private_nh_ = nh;
+      private_nh_.param("goal_radius", goal_radius_, 0.5);
+      private_nh_.param("delta", delta_, 0.005);
+      private_nh_.param("iteration_limit", iteration_limit_, 1000);
+      private_nh_.param("mode", mode_, 1);
       frame_id_ = "map";
       initialized_ = true;
       ROS_INFO("Initialized planner %s", name.c_str());
@@ -45,14 +47,13 @@ namespace rrt_planner {
 
     ROS_INFO("Making plan.");
     boost::mutex::scoped_lock(mutex_);
-
+    tree_->clear();
     start_ = { start.pose.position.x, start.pose.position.y };
     goal_ = { goal.pose.position.x, goal.pose.position.y };
 
     ROS_INFO("Start: %.2f, %.2f", start_.x, start_.y);
     ROS_INFO("Goal:  %.2f, %.2f", goal_.x, goal_.y);
-    
-    tree_ = new RRT();
+
     tree_->add(start_);
 
     ROS_INFO("Tree root: %.2f, %.2f", tree_->getRoot().getX(), tree_->getRoot().getY());
@@ -94,6 +95,8 @@ namespace rrt_planner {
     ROS_INFO("Tree size: %d", tree_->size());
     //tree_->print();
 
+    tree_->visualize();
+
     if(mode_ == 0) {
       int walk = tree_->size() - 1;
       while(walk != -1) {
@@ -114,7 +117,6 @@ namespace rrt_planner {
         }
       }
       plan.clear();
-      plan_time_ = ros::Time::now();
       valid_list.clear();
       ROS_INFO("%d has min length with %f", candidate, getLength(candidate));
       tree_->add(goal_, candidate);
@@ -127,7 +129,7 @@ namespace rrt_planner {
     }
 
     plan.clear();
-    plan_time_ = ros::Time::now();
+
     for(int i = 0; i < valid_list.size(); i++) {
       plan.push_back(generatePoseStamped(tree_->get(valid_list[i])));
     }
@@ -160,7 +162,7 @@ namespace rrt_planner {
     costmap_->worldToMap(wx, wy, mx, my);
     //ROS_INFO("Checking if (%.2f, %.2f) is obstacle.", wx, wy);
     unsigned char cost = costmap_->getCost(mx, my);
-    if(cost == costmap_2d::INSCRIBED_INFLATED_OBSTACLE || cost == costmap_2d::NO_INFORMATION) {
+    if(cost >= costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
       //ROS_INFO("+Obstacle");
       return true;
     }
@@ -239,7 +241,6 @@ namespace rrt_planner {
     pose.pose.orientation.y = 0.0;
     pose.pose.orientation.z = 0.0;
     pose.pose.orientation.w = 1.0;
-    pose.header.stamp = plan_time_;
     ROS_INFO("New PoseStamped: %.2f, %.2f", pose.pose.position.x, pose.pose.position.y);
     
     return pose;
@@ -299,6 +300,7 @@ namespace rrt_planner {
     }
     vis_pub_.publish(points);
     vis_pub_.publish(line_strip);
+    ros::Duration(0.5).sleep();
   }
 
   double RRTPlanner::getLength(int index) {
