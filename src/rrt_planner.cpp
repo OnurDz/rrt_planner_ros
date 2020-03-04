@@ -24,9 +24,10 @@ namespace rrt_planner {
       costmap_ = costmap_ros_->getCostmap();
       world_model_ = new base_local_planner::CostmapModel(*costmap_);
       ros::NodeHandle private_nh("~/" + name);
-      private_nh.param("goal_radius", goal_radius_, 0.3);
+      private_nh.param("goal_radius", goal_radius_, 0.5);
       private_nh.param("delta", delta_, 0.005);
-      private_nh.param("iteration_limit", iteration_limit_, 500);
+      private_nh.param("iteration_limit", iteration_limit_, 2500);
+      private_nh.param("mode", mode_, 1);
       frame_id_ = "map";
       initialized_ = true;
       ROS_INFO("Initialized planner %s", name.c_str());
@@ -58,8 +59,9 @@ namespace rrt_planner {
     
     int iterations = 0;
     bool goal_reached = false;
+    std::vector<int> valid_list;
 
-    while(!goal_reached && iterations < iteration_limit_) {
+    while(iterations < iteration_limit_) {
       RRT::Point random_point = getRandom();
       if(!obstacle(random_point)) {
         int nearest_index = nearest(random_point);
@@ -67,8 +69,15 @@ namespace rrt_planner {
         if(pathValid(random_point, nearest_node.getLocation())) {
           tree_->add(random_point, nearest_index);
           if(inGoalArea(random_point)) {
-            goal_reached = true;
-            tree_->add(goal_, tree_->size() - 1);
+            if(!goal_reached) {
+              goal_reached = true;
+            }
+            if(mode_ == 0) {
+              tree_->add(goal_, tree_->size() - 1);
+              break;
+            } else {
+              valid_list.push_back(tree_->size() - 1);
+            }
           }
           iterations++;
         }
@@ -85,23 +94,44 @@ namespace rrt_planner {
     ROS_INFO("Tree size: %d", tree_->size());
     //tree_->print();
 
+    if(mode_ == 0) {
+      int walk = tree_->size() - 1;
+      while(walk != -1) {
+        valid_list.push_back(walk);
+        walk = tree_->get(walk).getParent();
+      }
 
-    int walk = tree_->size() - 1;
-    std::vector<int> valid_list;
-    while(walk != -1) {
-      valid_list.push_back(walk);
-      walk = tree_->get(walk).getParent();
+    } else {
+      double length = -1;
+      double min_length = std::numeric_limits<double>::infinity();
+      int candidate = -1;
+      ROS_INFO("valid list size %d", valid_list.size());
+      for(int i = 0; i < valid_list.size(); i++) {
+        length = getLength(valid_list[i]);
+        if(min_length > length) {
+          min_length = length;
+          candidate = valid_list[i];
+        }
+      }
+      plan.clear();
+      plan_time_ = ros::Time::now();
+      valid_list.clear();
+      ROS_INFO("%d has min length with %f", candidate, getLength(candidate));
+      tree_->add(goal_, candidate);
+      int walk = tree_->size() - 1;;
+      while(walk != -1) {
+        valid_list.push_back(walk);
+        walk = tree_->get(walk).getParent();
+      }
+      
     }
-    
-
-
 
     plan.clear();
-
     plan_time_ = ros::Time::now();
     for(int i = 0; i < valid_list.size(); i++) {
       plan.push_back(generatePoseStamped(tree_->get(valid_list[i])));
     }
+    
 
     /**
      * @debug
@@ -269,6 +299,20 @@ namespace rrt_planner {
     }
     vis_pub_.publish(points);
     vis_pub_.publish(line_strip);
+  }
+
+  double RRTPlanner::getLength(int index) {
+    ROS_INFO("Getting length.");
+    RRT::Node walk, parent;
+    double len = 0.0;
+    walk = tree_->get(index);
+    while(walk.getParent() >= 0) {
+      parent = tree_->get(walk.getParent());
+      len += distance(walk.getLocation(), parent.getLocation());
+      walk = parent;
+    }
+    ROS_INFO("Length of %d is %f", index, len);
+    return len;
   }
   
 

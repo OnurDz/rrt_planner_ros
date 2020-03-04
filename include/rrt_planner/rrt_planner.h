@@ -226,6 +226,9 @@ namespace rrt_planner {
       std::vector<Node> list_;
       /** counter to store number of nodes */
       int size_;
+
+      ros::NodeHandle tree_nh_;
+      ros::Publisher tree_pub_;
   };
 
   /**
@@ -305,7 +308,7 @@ namespace rrt_planner {
        */
 
       void visualize(std::vector<geometry_msgs::PoseStamped> plan);
-
+      double getLength(int index);
 
     private:
       /** Costmap2DROS pointer object */
@@ -347,6 +350,7 @@ namespace rrt_planner {
       ros::NodeHandle vis_nh_;
       ros::Publisher vis_pub_;
 
+      int mode_;
   };
 }
 
