@@ -25,7 +25,7 @@ namespace rrt_planner {
       world_model_ = new base_local_planner::CostmapModel(*costmap_);
       ros::NodeHandle private_nh("~/" + name);
       private_nh.param("goal_radius", goal_radius_, 0.3);
-      private_nh.param("delta", delta_, 0.01);
+      private_nh.param("delta", delta_, 0.005);
       private_nh.param("iteration_limit", iteration_limit_, 500);
       frame_id_ = "map";
       initialized_ = true;
@@ -33,7 +33,6 @@ namespace rrt_planner {
 
 
       vis_pub_ = vis_nh_.advertise<visualization_msgs::Marker>("visualization_marker", 0);
-      marker_id_ = 0;
     }
   }
 
@@ -104,7 +103,6 @@ namespace rrt_planner {
       plan.push_back(generatePoseStamped(tree_->get(valid_list[i])));
     }
 
-
     /**
      * @debug
      **/
@@ -113,6 +111,7 @@ namespace rrt_planner {
     //}
     /***/
 
+    visualize(plan);
 
     /** Elapsed time calculation for debugging */
     auto en = std::chrono::system_clock::now();
@@ -211,11 +210,6 @@ namespace rrt_planner {
     pose.pose.orientation.w = 1.0;
     pose.header.stamp = plan_time_;
     ROS_INFO("New PoseStamped: %.2f, %.2f", pose.pose.position.x, pose.pose.position.y);
-
-
-    visualization_msgs::Marker marker = generateMarker(pose);
-    ros::Duration(1).sleep();
-    vis_pub_.publish(marker);
     
     return pose;
   }
@@ -237,28 +231,44 @@ namespace rrt_planner {
     //ROS_INFO("Closest index: %d", closest_index);
     return closest_index;
   }
-  
-  visualization_msgs::Marker RRTPlanner::generateMarker(geometry_msgs::PoseStamped pose) {
-    /** Visualization */
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = frame_id_;
-    marker.header.stamp = ros::Time::now();
-    marker.ns = "rrt_planner";
-    marker.id = 0;
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose = pose.pose;
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.1;
-    marker.color.a = 1.0;
-    marker.color.r = 1.0;
-    marker.color.g = 1.0;
-    marker.color.b = 0.0;
-    marker.id = marker_id_++;
-    return marker;
-    //printf("%.2f, %.2f\n", marker.pose.position.x, marker.pose.position.y);
-    /**               */
+
+  void RRTPlanner::visualize(std::vector<geometry_msgs::PoseStamped> plan) {
+    int marker_id = 0;
+    visualization_msgs::Marker points;
+    points.header.frame_id = frame_id_;
+    points.header.stamp = ros::Time::now();
+    points.type = visualization_msgs::Marker::POINTS;
+    points.action = visualization_msgs::Marker::ADD;
+    points.id = marker_id++;
+    points.color.r = 1.0;
+    points.color.a = 1.0;
+    points.pose.orientation.w = 1.0;
+    points.scale.x = 0.075;
+    points.scale.y = 0.075;
+
+    visualization_msgs::Marker line_strip;
+    line_strip.header.frame_id = frame_id_;
+    line_strip.header.stamp = ros::Time::now();
+    line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+    line_strip.action = visualization_msgs::Marker::ADD;
+    line_strip.id = marker_id++;
+    line_strip.color.g = 1.0;
+    line_strip.color.a = 1.0;
+    line_strip.pose.orientation.w = 1.0;
+    line_strip.scale.x = 0.05;
+
+    geometry_msgs::Point p;
+    for(int i = 0; i < plan.size(); i++) {
+      p.x = plan[i].pose.position.x;
+      p.y = plan[i].pose.position.y;
+      p.z = plan[i].pose.position.z;
+
+      points.points.push_back(p);
+      line_strip.points.push_back(p);
+    }
+    vis_pub_.publish(points);
+    vis_pub_.publish(line_strip);
   }
+  
 
 }

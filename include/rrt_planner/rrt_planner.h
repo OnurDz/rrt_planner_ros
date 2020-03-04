@@ -303,7 +303,8 @@ namespace rrt_planner {
       /**
        * publish visualization messages that contain node poses
        */
-      visualization_msgs::Marker generateMarker(geometry_msgs::PoseStamped pose);
+
+      void visualize(std::vector<geometry_msgs::PoseStamped> plan);
 
 
     private:
@@ -345,7 +346,6 @@ namespace rrt_planner {
       
       ros::NodeHandle vis_nh_;
       ros::Publisher vis_pub_;
-      int marker_id_;
 
   };
 }
