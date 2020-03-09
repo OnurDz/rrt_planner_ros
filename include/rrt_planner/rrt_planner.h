@@ -248,6 +248,9 @@ namespace rrt_planner {
         
       }
 
+      /**
+       * @brief remove all nodes in tree
+       */
       void clear() {
           list_.clear();
           size_ = 0;
@@ -259,7 +262,9 @@ namespace rrt_planner {
       /** counter to store number of nodes in tree */
       int size_;
 
+      /** ROS NodeHandle for visualization purposes */
       ros::NodeHandle tree_nh_;
+      /** ROS Publisher for markers */
       ros::Publisher tree_pub_;
   };
 
@@ -370,6 +375,8 @@ namespace rrt_planner {
 
       /** goal threshold */
       double goal_radius_;
+      /** step size of the nodes. determines how far a new node will be from its parent. */
+      double step_size_;
       /** precision variable */
       double delta_;
       /** number of max iterations for a single sweep */
@@ -377,13 +384,13 @@ namespace rrt_planner {
 
       /** ROS NodeHandle object */
       ros::NodeHandle private_nh_;
-      
+      /** ROS NodeHandle for visualization purposes */
       ros::NodeHandle vis_nh_;
+      /** ROS Publisher for markers */
       ros::Publisher vis_pub_;
 
-
+      /** integer for mode selection */
       int mode_;
-      double step_size_;
   };
 }
 
