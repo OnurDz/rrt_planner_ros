@@ -5,15 +5,15 @@ PLUGINLIB_EXPORT_CLASS(rrt_planner::RRTPlanner, nav_core::BaseGlobalPlanner)
 
 namespace rrt_planner {
   RRTPlanner::RRTPlanner()
-  : costmap_ros_(nullptr), initialized_(false) {}
+  : costmap_ros_(nullptr), initialized_(false), private_nh_("~") {}
 
   RRTPlanner::RRTPlanner(ros::NodeHandle nh)
-  : costmap_ros_(nullptr), initialized_(false) {
+  : costmap_ros_(nullptr), initialized_(false), private_nh_("~") {
     private_nh_ = nh;
   }
 
   RRTPlanner::RRTPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
-  : initialized_(false) {
+  : initialized_(false), private_nh_("~") {
     initialize(name, costmap_ros);
   }
 
@@ -24,12 +24,20 @@ namespace rrt_planner {
       costmap_ = costmap_ros_->getCostmap();
       world_model_ = new base_local_planner::CostmapModel(*costmap_);
       tree_ = new RRT();
-      ros::NodeHandle nh("~/rrt_planner");
-      private_nh_ = nh;
-      private_nh_.param("goal_radius", goal_radius_, 0.5);
-      private_nh_.param("delta", delta_, 0.005);
-      private_nh_.param("iteration_limit", iteration_limit_, 1000);
-      private_nh_.param("mode", mode_, 1);
+      private_nh_.param("/move_base/goal_radius", goal_radius_, 0.5);
+      private_nh_.param("/move_base/delta", delta_, 0.005);
+      private_nh_.param("/move_base/iteration_limit", iteration_limit_, 1000);
+      private_nh_.param("/move_base/mode", mode_, 1);
+      private_nh_.param("/move_base/step_size", step_size_, 0.5);
+      private_nh_.param("/move_base/stepping_enabled", stepping_enabled_, true);
+      ROS_INFO("Goal radius: %.2f", goal_radius_);
+      ROS_INFO("Delta: %.3f", delta_);
+      ROS_INFO("Iteration limit: %d", iteration_limit_);
+      ROS_INFO("Mode: %d", mode_);
+      if(stepping_enabled_)
+        ROS_INFO("Step size: %.2f", step_size_);
+
+
       frame_id_ = "map";
       initialized_ = true;
       ROS_INFO("Initialized planner %s", name.c_str());
@@ -51,6 +59,14 @@ namespace rrt_planner {
     start_ = { start.pose.position.x, start.pose.position.y };
     goal_ = { goal.pose.position.x, goal.pose.position.y };
 
+    if (goal.header.frame_id != costmap_ros_->getGlobalFrameID()) {
+      ROS_ERROR("This planner will only accept goals in the %s frame,"
+                "the goal was sent to the %s frame.",
+                costmap_ros_->getGlobalFrameID().c_str(),
+                goal.header.frame_id.c_str());
+      return false;
+    }
+
     ROS_INFO("Start: %.2f, %.2f", start_.x, start_.y);
     ROS_INFO("Goal:  %.2f, %.2f", goal_.x, goal_.y);
 
@@ -65,10 +81,15 @@ namespace rrt_planner {
     while(iterations < iteration_limit_) {
       RRT::Point random_point = getRandom();
       if(!obstacle(random_point)) {
+        //ROS_INFO("FLAG");
         int nearest_index = nearest(random_point);
         RRT::Node nearest_node = tree_->get(nearest_index);
         if(pathValid(random_point, nearest_node.getLocation())) {
-          tree_->add(random_point, nearest_index);
+          if(stepping_enabled_) {
+            random_point = addWithStep(random_point, nearest_index);
+          } else {
+            tree_->add(random_point, nearest_index);
+          }
           if(inGoalArea(random_point)) {
             if(!goal_reached) {
               goal_reached = true;
@@ -84,18 +105,20 @@ namespace rrt_planner {
         }
       }
     }
+    
+    tree_->visualize();
 
     if(!goal_reached) {
       ROS_WARN("Iteration limit of %d reached. Path not found!", iteration_limit_);
       return false;
     }
+    
 
     ROS_INFO("Tree completed.");
     ROS_INFO("Iterations: %d", iterations);
     ROS_INFO("Tree size: %d", tree_->size());
     //tree_->print();
 
-    tree_->visualize();
 
     if(mode_ == 0) {
       int walk = tree_->size() - 1;
@@ -201,6 +224,25 @@ namespace rrt_planner {
       }
     }
     return true;
+  }
+
+  RRT::Point RRTPlanner::addWithStep(RRT::Point p, int pindex) {
+    RRT::Node parent = tree_->get(pindex);
+    double rx, ry, px, py;
+    rx = p.x;
+    ry = p.y;
+    px = parent.getX();
+    py = parent.getY();
+
+    double theta = atan2(ry - py, rx - px);
+
+    RRT::Point new_point;
+    new_point.x = px + step_size_ * cos(theta);
+    new_point.y = py + step_size_ * sin(theta);
+
+    tree_->add(new_point, pindex);
+
+    return new_point;
   }
 
   double RRTPlanner::distance(RRT::Point start, RRT::Point end) {

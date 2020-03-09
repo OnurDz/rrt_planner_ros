@@ -225,7 +225,7 @@ namespace rrt_planner {
       }
 
       void visualize() {
-        ROS_INFO("VISUALIZING...");
+        //ROS_INFO("VISUALIZING...");
         int marker_id = 0;
         visualization_msgs::Marker points;
         points.header.frame_id = "map";
@@ -273,7 +273,7 @@ namespace rrt_planner {
     private:
       /** dynamic array to store nodes efficiently */
       std::vector<Node> list_;
-      /** counter to store number of nodes */
+      /** counter to store number of nodes in tree */
       int size_;
 
       ros::NodeHandle tree_nh_;
@@ -358,6 +358,7 @@ namespace rrt_planner {
 
       void visualize(std::vector<geometry_msgs::PoseStamped> plan);
       double getLength(int index);
+      RRT::Point addWithStep(RRT::Point p, int pindex);
 
     private:
       /** Costmap2DROS pointer object */
@@ -397,7 +398,10 @@ namespace rrt_planner {
       ros::NodeHandle vis_nh_;
       ros::Publisher vis_pub_;
 
+
       int mode_;
+      bool stepping_enabled_;
+      double step_size_;
   };
 }
 
