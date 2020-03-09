@@ -131,7 +131,7 @@ namespace rrt_planner {
       plan.clear();
       valid_list.clear();
       tree_->add(goal_, candidate);
-      int walk = tree_->size() - 1;;
+      int walk = tree_->size() - 1;
       while(walk != -1) {
         valid_list.push_back(walk);
         walk = tree_->get(walk).getParent();
@@ -141,10 +141,12 @@ namespace rrt_planner {
 
     plan.clear();
 
-    for(int i = 0; i < valid_list.size(); i++) {
-      plan.push_back(generatePoseStamped(tree_->get(valid_list[i])));
-    }
+    int plan_size = valid_list.size();
+    for(int i = 1; i <= valid_list.size(); i++) {
+      plan.push_back(generatePoseStamped(tree_->get(valid_list[plan_size - i])));
+    }    
 
+    
     visualize(plan);
 
     /** Elapsed time calculation for debugging */
@@ -153,7 +155,7 @@ namespace rrt_planner {
     ROS_INFO("ELAPSED TIME: %f seconds", elapsed_seconds.count());
     /**                                        */
 
-    return !plan.empty();
+    return true;
   
   }
 
