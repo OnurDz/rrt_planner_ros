@@ -188,11 +188,7 @@ namespace rrt_planner {
       void add(Node n) {
         n.setIndex(size_);
         list_.push_back(n);
-        //ROS_INFO("added (%.2f, %.2f) with parent %d", list_.at(size_).getX(), list_.at(size_).getY(), list_.at(size_).getParent());
         Node debug = list_[size_];
-        //if(debug.getParent() != -1) {
-          //ROS_INFO("parent location: (%.2f, %.2f)", get(debug.getParent()).getX(), get(debug.getParent()).getY());
-        //}
         size_++;
       }
       
@@ -213,19 +209,9 @@ namespace rrt_planner {
       }
 
       /**
-       * @brief print tree nodes with repective parents to stdout for debugging purposes
+       * @brief visualize the tree in rviz
        */
-      void print() {
-        printf("Root:\t(%.2f,\t%.2f)\n", list_[0].getX(), list_[0].getY());
-        for(int i = 1; i < size_; i++) {
-          Node current = get(i);
-          printf("\nNode\t%d:\t(%.2f,\t%.2f)\n",   i, current.getX(), current.getY());
-          printf("Parent\t%d:\t(%.2f,\t%.2f)\n", i, get(current.getParent()).getX(), get(current.getParent()).getY());
-        }
-      }
-
       void visualize() {
-        //ROS_INFO("VISUALIZING...");
         int marker_id = 0;
         visualization_msgs::Marker points;
         points.header.frame_id = "map";
@@ -257,10 +243,7 @@ namespace rrt_planner {
           p.z = 0.0;
 
           points.points.push_back(p);
-          //line_strip.points.push_back(p);
           tree_pub_.publish(points);
-          //tree_pub_.publish(line_strip);
-          //ros::Duration(0.1).sleep();
         }
         
       }
@@ -268,7 +251,7 @@ namespace rrt_planner {
       void clear() {
           list_.clear();
           size_ = 0;
-        }
+      }
 
     private:
       /** dynamic array to store nodes efficiently */
@@ -400,7 +383,6 @@ namespace rrt_planner {
 
 
       int mode_;
-      bool stepping_enabled_;
       double step_size_;
   };
 }

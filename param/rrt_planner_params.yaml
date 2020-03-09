@@ -1,6 +1,5 @@
-goal_radius: 0.2
-delta: 0.08
-iteration_limit: 750
 mode: 1
-step_size: 0.2
-stepping_enabled: true
+goal_radius: 0.1
+step_size: 0.1
+delta: 0.05
+iteration_limit: 1000

@@ -24,21 +24,19 @@ namespace rrt_planner {
       costmap_ = costmap_ros_->getCostmap();
       world_model_ = new base_local_planner::CostmapModel(*costmap_);
       tree_ = new RRT();
-      private_nh_.param("/move_base/goal_radius", goal_radius_, 0.5);
-      private_nh_.param("/move_base/delta", delta_, 0.005);
-      private_nh_.param("/move_base/iteration_limit", iteration_limit_, 1000);
       private_nh_.param("/move_base/mode", mode_, 1);
-      private_nh_.param("/move_base/step_size", step_size_, 0.5);
-      private_nh_.param("/move_base/stepping_enabled", stepping_enabled_, true);
+      private_nh_.param("/move_base/goal_radius", goal_radius_, 0.2);
+      private_nh_.param("/move_base/step_size", step_size_, 0.2);
+      private_nh_.param("/move_base/delta", delta_, 0.08);
+      private_nh_.param("/move_base/iteration_limit", iteration_limit_, 750);
+      ROS_INFO("Mode: %d", mode_);
       ROS_INFO("Goal radius: %.2f", goal_radius_);
+      ROS_INFO("Step size: %.2f", step_size_);
       ROS_INFO("Delta: %.3f", delta_);
       ROS_INFO("Iteration limit: %d", iteration_limit_);
-      ROS_INFO("Mode: %d", mode_);
-      if(stepping_enabled_)
-        ROS_INFO("Step size: %.2f", step_size_);
 
 
-      frame_id_ = "map";
+      frame_id_ = costmap_ros_->getGlobalFrameID();
       initialized_ = true;
       ROS_INFO("Initialized planner %s", name.c_str());
 
@@ -81,19 +79,12 @@ namespace rrt_planner {
     while(iterations < iteration_limit_) {
       RRT::Point random_point = getRandom();
       if(!obstacle(random_point)) {
-        //ROS_INFO("FLAG");
         int nearest_index = nearest(random_point);
-        RRT::Node nearest_node = tree_->get(nearest_index);
-        if(pathValid(random_point, nearest_node.getLocation())) {
-          if(stepping_enabled_) {
-            random_point = addWithStep(random_point, nearest_index);
-          } else {
-            tree_->add(random_point, nearest_index);
-          }
+        RRT::Point nearest_loc = tree_->get(nearest_index).getLocation();
+        if(pathValid(random_point, nearest_loc)) {
+          random_point = addWithStep(random_point, nearest_index);
           if(inGoalArea(random_point)) {
-            if(!goal_reached) {
-              goal_reached = true;
-            }
+            goal_reached = true;
             if(mode_ == 0) {
               tree_->add(goal_, tree_->size() - 1);
               break;
@@ -117,7 +108,6 @@ namespace rrt_planner {
     ROS_INFO("Tree completed.");
     ROS_INFO("Iterations: %d", iterations);
     ROS_INFO("Tree size: %d", tree_->size());
-    //tree_->print();
 
 
     if(mode_ == 0) {
@@ -131,7 +121,6 @@ namespace rrt_planner {
       double length = -1;
       double min_length = std::numeric_limits<double>::infinity();
       int candidate = -1;
-      ROS_INFO("valid list size %d", valid_list.size());
       for(int i = 0; i < valid_list.size(); i++) {
         length = getLength(valid_list[i]);
         if(min_length > length) {
@@ -141,7 +130,6 @@ namespace rrt_planner {
       }
       plan.clear();
       valid_list.clear();
-      ROS_INFO("%d has min length with %f", candidate, getLength(candidate));
       tree_->add(goal_, candidate);
       int walk = tree_->size() - 1;;
       while(walk != -1) {
@@ -156,15 +144,6 @@ namespace rrt_planner {
     for(int i = 0; i < valid_list.size(); i++) {
       plan.push_back(generatePoseStamped(tree_->get(valid_list[i])));
     }
-    
-
-    /**
-     * @debug
-     **/
-    //for(int w = 0; w < plan.size(); w++) {
-    //  printf("Waypoint\t%d:\t(%.2f, %.2f)\n", w, plan[w].pose.position.x, plan[w].pose.position.y);
-    //}
-    /***/
 
     visualize(plan);
 
@@ -183,13 +162,10 @@ namespace rrt_planner {
     double wx = point.x;
     double wy = point.y;
     costmap_->worldToMap(wx, wy, mx, my);
-    //ROS_INFO("Checking if (%.2f, %.2f) is obstacle.", wx, wy);
     unsigned char cost = costmap_->getCost(mx, my);
     if(cost >= costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
-      //ROS_INFO("+Obstacle");
       return true;
     }
-    //ROS_INFO("-Not Obstacle");
     return false;
   }
 
@@ -200,9 +176,10 @@ namespace rrt_planner {
     start_y = start.y;
     end_x = end.x;
     end_y = end.y;
-    //ROS_INFO("Checking if (%.2f, %.2f) ---> (%.2f, %.2f) path is valid.", start_x, start_y, end_x, end_y);
 
-    double theta = atan2(start_y - end_y, start_x - end_x);
+    float theta = atan2(start_y - end_y, start_x - end_x);
+    float cos_theta = cos(theta);
+    float sin_theta = sin(theta);
 
     RRT::Point current;
     double cur_x, cur_y;
@@ -214,9 +191,8 @@ namespace rrt_planner {
     unsigned int mx, my;
 
     while(distance(current, end) > delta_) {
-      //ROS_INFO("current: (%.2f, %.2f)", cur_x, cur_y);
-      cur_x -= delta_ * cos(theta);
-      cur_y -= delta_ * sin(theta);
+      cur_x -= delta_ * cos_theta;
+      cur_y -= delta_ * sin_theta;
       current.x = cur_x;
       current.y = cur_y;
       if(obstacle(current)) {
@@ -258,7 +234,6 @@ namespace rrt_planner {
   }
 
   RRT::Point RRTPlanner::getRandom() {
-    //ROS_INFO("Getting random point.");
     RRT::Point rand;
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -268,7 +243,6 @@ namespace rrt_planner {
     std::uniform_real_distribution<> y((-1) * world_y / 2, world_y / 2);
     rand.x = x(gen);
     rand.y = y(gen);
-    //ROS_INFO("Random point: %.2f, %.2f", rand.x, rand.y);
     return rand;
   }
 
@@ -289,7 +263,6 @@ namespace rrt_planner {
   }
 
   int RRTPlanner::nearest(RRT::Point point) {
-    //ROS_INFO("Getting the closest node to (%.2f, %.2f)", point.x, point.y);
     double min_dist = std::numeric_limits<double>::infinity();
     int closest_index;
     int index;
@@ -301,8 +274,6 @@ namespace rrt_planner {
         closest_index = index;
       }
     }
-    //ROS_INFO("Tree size: %d", tree_->size());
-    //ROS_INFO("Closest index: %d", closest_index);
     return closest_index;
   }
 
@@ -346,18 +317,15 @@ namespace rrt_planner {
   }
 
   double RRTPlanner::getLength(int index) {
-    ROS_INFO("Getting length.");
     RRT::Node walk, parent;
-    double len = 0.0;
+    int len = 0;
     walk = tree_->get(index);
     while(walk.getParent() >= 0) {
       parent = tree_->get(walk.getParent());
-      len += distance(walk.getLocation(), parent.getLocation());
+      len++;
       walk = parent;
     }
-    ROS_INFO("Length of %d is %f", index, len);
     return len;
   }
   
-
 }
