@@ -152,9 +152,11 @@ namespace rrt_planner {
     /** Elapsed time calculation for debugging */
     auto en = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = en - st;
-    ROS_INFO("ELAPSED TIME: %f seconds", elapsed_seconds.count());
+    ROS_INFO("ELAPSED TIME:\t%f\tseconds", elapsed_seconds.count());
     /**                                        */
-
+    
+    tree_->clear();
+    
     return true;
   
   }
