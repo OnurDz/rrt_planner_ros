@@ -347,6 +347,7 @@ namespace rrt_planner {
       void visualize(std::vector<geometry_msgs::PoseStamped> plan);
       double getLength(int index);
       RRT::Point addWithStep(RRT::Point p, int pindex);
+      void cleanPath(std::vector<geometry_msgs::PoseStamped> *plan);
 
     private:
       /** Costmap2DROS pointer object */

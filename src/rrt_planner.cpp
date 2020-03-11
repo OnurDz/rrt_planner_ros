@@ -148,7 +148,8 @@ namespace rrt_planner {
     int plan_size = valid_list.size();
     for(int i = 1; i <= valid_list.size(); i++) {
       plan.push_back(generatePoseStamped(tree_->get(valid_list[plan_size - i])));
-    }    
+    }
+    cleanPath(&plan);
 
     if(path_visualization_enabled_)
       visualize(plan);
@@ -335,5 +336,46 @@ namespace rrt_planner {
     }
     return len;
   }
+
+  void RRTPlanner::cleanPath(std::vector<geometry_msgs::PoseStamped> *plan) {
+    int size = plan->size();
+    int cursor = 0;
+    int candidate;
+    RRT::Point temp_s;
+    RRT::Point temp_g;
+    std::vector<geometry_msgs::PoseStamped> temp;
+    bool valid[size];
+    for(int i = 0; i < size; i++) {
+      valid[i] = true;
+    } 
+    while(cursor < size - 2) {
+      candidate = cursor + 1;
+      temp_s.x = plan->at(cursor).pose.position.x;
+      temp_s.y = plan->at(cursor).pose.position.y;
+      while(candidate < size - 1) {
+        temp_g.x = plan->at(candidate + 1).pose.position.x;
+        temp_g.y = plan->at(candidate + 1).pose.position.y;
+        if(!pathValid(temp_s, temp_g)) {
+          break;
+        } else {
+          valid[candidate] = false;
+          candidate++;
+        }
+      }
+      cursor = candidate;
+    }
+
+    for(int i = 0; i < size; i++) {
+      if(valid[i]) {
+        temp.push_back(plan->at(i));
+      }
+    }
+
+    plan->clear();
+    for(int i = 0; i < temp.size(); i++) {
+      plan->push_back(temp[i]);
+    }
+  }
+
   
 }
