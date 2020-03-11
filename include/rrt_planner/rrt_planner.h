@@ -19,11 +19,6 @@
 #include <base_local_planner/world_model.h>
 #include <base_local_planner/costmap_model.h>
 
-/** Debugging  */
-#include <chrono>
-#include <ctime>
-/**            */
-
 #ifndef RRTS_CPP
 #define RRTS_CPP
 

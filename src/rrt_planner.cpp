@@ -32,13 +32,6 @@ namespace rrt_planner {
       private_nh_.param("/move_base/tree_visualization_enabled", tree_visualization_enabled_, false);
       private_nh_.param("/move_base/path_visualization_enabled", path_visualization_enabled_, false);
 
-      ROS_INFO("Mode: %d", mode_);
-      ROS_INFO("Goal radius: %.2f", goal_radius_);
-      ROS_INFO("Step size: %.2f", step_size_);
-      ROS_INFO("Delta: %.3f", delta_);
-      ROS_INFO("Iteration limit: %d", iteration_limit_);
-
-
       frame_id_ = costmap_ros_->getGlobalFrameID();
       initialized_ = true;
       ROS_INFO("Initialized planner %s", name.c_str());
@@ -49,10 +42,6 @@ namespace rrt_planner {
   }
 
   bool RRTPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal, std::vector<geometry_msgs::PoseStamped>& plan) {
-    
-    /** Determine proficency and efficiency */
-    auto st = std::chrono::system_clock::now();
-    /**                                     */
 
     ROS_INFO("Making plan.");
     boost::mutex::scoped_lock(mutex_);
@@ -152,12 +141,6 @@ namespace rrt_planner {
 
     if(path_visualization_enabled_)
       visualize(plan);
-
-    /** Elapsed time calculation for debugging */
-    auto en = std::chrono::system_clock::now();
-    std::chrono::duration<double> elapsed_seconds = en - st;
-    ROS_INFO("ELAPSED TIME:\t%f\tseconds", elapsed_seconds.count());
-    /**                                        */
     
     tree_->clear();
     
@@ -265,7 +248,6 @@ namespace rrt_planner {
     pose.pose.orientation.y = 0.0;
     pose.pose.orientation.z = 0.0;
     pose.pose.orientation.w = 1.0;
-    ROS_INFO("New PoseStamped: %.2f, %.2f", pose.pose.position.x, pose.pose.position.y);
     
     return pose;
   }
