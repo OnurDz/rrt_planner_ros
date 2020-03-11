@@ -306,7 +306,7 @@ namespace rrt_planner {
     ros::Duration(0.5).sleep();
   }
 
-  double RRTPlanner::getLength(int index) {
+  int RRTPlanner::getLength(int index) {
     RRT::Node walk, parent;
     int len = 0;
     walk = tree_->get(index);

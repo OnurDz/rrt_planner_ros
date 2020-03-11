@@ -338,9 +338,16 @@ namespace rrt_planner {
       /**
        * publish visualization messages that contain node poses
        */
-
       void visualize(std::vector<geometry_msgs::PoseStamped> plan);
-      double getLength(int index);
+
+      /**
+       * calculate nodes traversed and return it
+       */
+      int getLength(int index);
+
+      /**
+       * add nodes to tree according to step size
+       */
       RRT::Point addWithStep(RRT::Point p, int pindex);
 
     private:
