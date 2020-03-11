@@ -1,5 +1,7 @@
-mode: 1
+mode: 0
 goal_radius: 0.15
 step_size: 0.15
-delta: 0.05
-iteration_limit: 1500
+delta: 0.3
+iteration_limit: 2500
+tree_visualization_enabled: true
+path_visualization_enabled: true

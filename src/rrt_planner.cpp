@@ -29,6 +29,9 @@ namespace rrt_planner {
       private_nh_.param("/move_base/step_size", step_size_, 0.2);
       private_nh_.param("/move_base/delta", delta_, 0.08);
       private_nh_.param("/move_base/iteration_limit", iteration_limit_, 750);
+      private_nh_.param("/move_base/tree_visualization_enabled", tree_visualization_enabled_, false);
+      private_nh_.param("/move_base/path_visualization_enabled", path_visualization_enabled_, false);
+
       ROS_INFO("Mode: %d", mode_);
       ROS_INFO("Goal radius: %.2f", goal_radius_);
       ROS_INFO("Step size: %.2f", step_size_);
@@ -97,7 +100,8 @@ namespace rrt_planner {
       }
     }
     
-    tree_->visualize();
+    if(tree_visualization_enabled_)
+      tree_->visualize();
 
     if(!goal_reached) {
       ROS_WARN("Iteration limit of %d reached. Path not found!", iteration_limit_);
@@ -146,8 +150,8 @@ namespace rrt_planner {
       plan.push_back(generatePoseStamped(tree_->get(valid_list[plan_size - i])));
     }    
 
-    
-    visualize(plan);
+    if(path_visualization_enabled_)
+      visualize(plan);
 
     /** Elapsed time calculation for debugging */
     auto en = std::chrono::system_clock::now();
@@ -167,7 +171,7 @@ namespace rrt_planner {
     double wy = point.y;
     costmap_->worldToMap(wx, wy, mx, my);
     unsigned char cost = costmap_->getCost(mx, my);
-    if(cost >= costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+    if(cost >= (unsigned char)150) {
       return true;
     }
     return false;

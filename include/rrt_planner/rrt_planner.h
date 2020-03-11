@@ -391,6 +391,11 @@ namespace rrt_planner {
 
       /** integer for mode selection */
       int mode_;
+      /** visualize tree nodes if true */
+      bool tree_visualization_enabled_;
+      /** visualize path if true */
+      bool path_visualization_enabled_;
+
   };
 }
 
