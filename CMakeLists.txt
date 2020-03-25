@@ -30,6 +30,7 @@ catkin_package(
 
 add_library(${PROJECT_NAME}
   src/rrt_planner.cpp
+  src/cubic_spline_interpolator.cpp
 )
 
 add_dependencies(rrt_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

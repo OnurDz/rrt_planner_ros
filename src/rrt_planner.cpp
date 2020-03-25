@@ -1,5 +1,6 @@
 #include <pluginlib/class_list_macros.h>
 #include "rrt_planner/rrt_planner.h"
+#include "rrt_planner/cubic_spline_interpolator.h"
 
 PLUGINLIB_EXPORT_CLASS(rrt_planner::RRTPlanner, nav_core::BaseGlobalPlanner)
 
@@ -29,6 +30,7 @@ namespace rrt_planner {
       private_nh_.param("/move_base/step_size", step_size_, 0.2);
       private_nh_.param("/move_base/delta", delta_, 0.08);
       private_nh_.param("/move_base/iteration_limit", iteration_limit_, 750);
+      private_nh_.param("/move_base/inflation_threshold", inflation_threshold_, 172);
       private_nh_.param("/move_base/tree_visualization_enabled", tree_visualization_enabled_, false);
       private_nh_.param("/move_base/path_visualization_enabled", path_visualization_enabled_, false);
 
@@ -145,11 +147,16 @@ namespace rrt_planner {
 
     plan.clear();
 
+    std::vector<geometry_msgs::PoseStamped> temp;
+
     int plan_size = valid_list.size();
     for(int i = 1; i <= valid_list.size(); i++) {
-      plan.push_back(generatePoseStamped(tree_->get(valid_list[plan_size - i])));
+      temp.push_back(generatePoseStamped(tree_->get(valid_list[plan_size - i])));
     }
-    cleanPath(&plan);
+    cleanPath(&temp);
+    
+    path_smoothing::CubicSplineInterpolator csi("smoother");
+    csi.interpolatePath(temp, plan);
 
     if(path_visualization_enabled_)
       visualize(plan);
@@ -172,7 +179,7 @@ namespace rrt_planner {
     double wy = point.y;
     costmap_->worldToMap(wx, wy, mx, my);
     unsigned char cost = costmap_->getCost(mx, my);
-    if(cost >= (unsigned char)150) {
+    if(cost >= (unsigned char)inflation_threshold_) {
       return true;
     }
     return false;

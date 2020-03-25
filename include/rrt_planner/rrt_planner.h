@@ -19,6 +19,7 @@
 #include <base_local_planner/world_model.h>
 #include <base_local_planner/costmap_model.h>
 
+
 /** Debugging  */
 #include <chrono>
 #include <ctime>
@@ -188,7 +189,6 @@ namespace rrt_planner {
       void add(Node n) {
         n.setIndex(size_);
         list_.push_back(n);
-        Node debug = list_[size_];
         size_++;
       }
       
@@ -222,8 +222,8 @@ namespace rrt_planner {
         points.color.r = 1.0;
         points.color.a = 0.5;
         points.pose.orientation.w = 1.0;
-        points.scale.x = 0.07;
-        points.scale.y = 0.07;
+        points.scale.x = 0.04;
+        points.scale.y = 0.04;
 
         visualization_msgs::Marker line_strip;
         line_strip.header.frame_id = "map";
@@ -396,7 +396,8 @@ namespace rrt_planner {
       bool tree_visualization_enabled_;
       /** visualize path if true */
       bool path_visualization_enabled_;
-
+      /** inflation threshold for avoiding obstacles */
+      int inflation_threshold_;
   };
 }
 
